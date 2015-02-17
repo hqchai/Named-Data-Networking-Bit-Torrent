@@ -32,7 +32,7 @@ class BitTracker {
       Name dataName(interest.getName());
       Name clientName = dataName.getSubName(3, Name::npos);
       string content;
-      if (client_num == MAX_CLIENT_NUM)
+      if (client_num >= MAX_CLIENT_NUM)
         content = "Peer List Full.";
       else
         content = getPeerList(clientName.toUri());
@@ -48,7 +48,7 @@ class BitTracker {
     }
 
     void onRegisterFailed(const Name& prefix, const string&reason) {
-      cerr << "ERRPR: Failed to register prefix \""
+      cerr << "ERROR: Failed to register prefix \""
            << prefix << "\" in local hub's daemon {" << reason << ")"
            << endl;
       m_face.shutdown();
