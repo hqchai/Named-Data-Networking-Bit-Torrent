@@ -9,16 +9,20 @@ using namespace std;
 
 class ChunkManager {
     public:
-        //Creates metafile and file
+        //Use if bitmap file does not exists
+        //If file does not exist, file is preallocated and bitmap is all 0's
+        //If file does exists, assumed to be complete and bitmap is all 1's
         ChunkManager(const char* filename, const long fileSize, const long chunkSize);
-        //Reads existing metafile
+        //Use if bitmap file and file exists
         ChunkManager(const char* filename);
         ~ChunkManager();
         long readChunk(const long chunkNum, char* data);
         long writeChunk(const long chunkNum, char* data);
-        long getNumChunks();
-        long getChunkSize();
-        long getLastChunkSize();
+        long getNumChunks(); //Total number of chunks
+        long getChunkSize(); //Size of chunk, except last
+        long getLastChunkSize(); //Size of last chunk
+        bool* getChunks(); //Return pointer to bitmap
+        bool chunkAvailable(const long chunkNum); //Yes/No if chunk has been downloaded
         
     private:
         fstream m_fileStream;
