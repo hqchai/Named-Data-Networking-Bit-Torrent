@@ -1,15 +1,31 @@
 #include "face.hpp"
 #include <string>
 #include <iostream>
+#include <fstream>
+
+#include "BitClient.hpp"
 
 using namespace std;
 
-namespace ndn {
+BitClient(const char* filename) {
+  chunk_manager = ChunkManager(name);
+  m_filename = name; 
+  return;
+}
 
-class BitClient {
-  public:
-    void run(const string hash, const string name) {
-      Interest interest(Name("/tracker/BitTorrent/" + hash + name));
+void run() {
+  int num_chunks;
+  int finished;
+  string hash;
+
+  num_chunks = chunk_manager.getNumChunks();
+  hash = 
+  finished = 0;
+ 
+  while (!finished) {
+    finished = 1;
+    for (int i=0; i<num_chunks; i++) {
+      Interest interest(Name("/tracker/BitTorrent/" + hash + "/" + to_string(i)));
       interest.setInterestLifetime(time::milliseconds(1000));
       interest.setMustBeFresh(true);
 
@@ -20,23 +36,24 @@ class BitClient {
       cout << "Sending " << interest << endl;
       m_face.processEvents();
     }
+  }
+}
 
-  private:
-    void onData(const Interest& interest, const Data&data) {
-      const Block b = data.getContent();
-      const uint8_t* content = b.value();
-      for (size_t i = 0; i < b.value_size(); i++)
-        cout << content[i];
-      cout << endl;
-    }
+void onData(const Interest& interest, const Data&data) {
+  const Block b = data.getContent();
+  const uint8_t* content = b.value();
+  for (size_t i = 0; i < b.value_size(); i++)
+    cout << content[i];
+  cout << endl;
+}
 
-    void onTimeout(const Interest& interest) {
-      cout << "Timeout " << interest << endl;
-    }
+void onTimeout(const Interest& interest) {
+  cout << "Timeout " << interest << endl;
+}
 
-    Face m_face;
-};
 
+
+/*
 int main (int argc, char** argv) {
   ndn::BitClient client;
   if (argc < 3) {
@@ -52,3 +69,4 @@ int main (int argc, char** argv) {
   }
   return 0;
 }
+*/
