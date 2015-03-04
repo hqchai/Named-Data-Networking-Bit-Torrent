@@ -1,140 +1,231 @@
-#include "Metafile.hpp"
+#include "TorrentFileManager.hpp"
 
 using namespace std;
 
-int DEFAULT_CHUNK_SIZE = 256*1024;
+int DEFAULT_CHUNK_SIZE = 16;//256*1024;
+int debug = 1;
 
-Metafile::Metafile(string filename) {
+TorrentFileManager::TorrentFileManager(string filename) {
 // Checks if metadata file for file already exists
 // If it doesn't it initializes a new one and sets variables
 // Otherwise, it will read the existing metafile and set variables
 
   // Check if file exists
-  ifstream metafile;
-  string metafilename = filename + ".meta";
+  ifstream tfilestream;
+  string tfilename = filename + ".torrent";
 
-  metafile.open(metafilename, ifstream::in);
-  if (metafile.fail) {
+  tfilestream.open(tfilename.c_str(), fstream::in);
+  if (tfilestream.fail()) {
     // If metafile doesn't exist, create a new one    
-    metafile.close();
-    this->createMetafile(filename, metafile);
+    // If the original file also doesn't exist, throw an error
+    tfilestream.open(filename.c_str(), fstream::in);
+    if (tfilestream.fail()) {
+      cout << "Failed to find original file to create torrent file. " << 
+              "Check that file " << filename << " exists\n";
+      return;
+    }
+    else {
+      cout << "Entering\n";
+      this->createTorrentFile(filename);
+      cout << "Leaving\n";
+    }
   }
   else {
     // Otherwise, read in values and set variables
-    this->setFromMetafile(metafile);
+    this->setFromTorrentFile(filename);
   }
-  metafile.close();
+  tfilestream.close();
+
+  if (debug) {
+    cout << "filename = " << this->getFilename() << endl;
+    cout << "filesize = " << to_string(this->getFilesize()) << endl;
+    cout << "filehash = " << this->getFilehash() << endl;
+    cout << "num chunks = " << to_string(this->getNumChunks()) << endl;
+    cout << "chunk size = " << to_string(this->getChunkSize()) << endl;
+    for (int i=0; i<this->numchunks; i++) {
+      cout << "chunk hash " <<to_string(i) << " = " << this->getChunkHash(i) << endl;
+    }
+  }
   return;
 }
 
-void Metafile::createMetafile(string filename, std::ifstream mfilestream) {
+void TorrentFileManager::createTorrentFile(string filename) {
 // Analyzes contents of file and writes to metafilestream  
 // Sets filename filesize filehash numchunks chunksize chunkhashses
 // Must reopen metafilestream
+  ofstream tfilestream;
   ifstream fstream;
-  fstream.open(filename, ifstream::in);
+  fstream.open(filename.c_str(), ifstream::in);
  
   this->filename = filename; 
 
   // Get file size
-  fstream.seekg (0, stream.end);
+  fstream.seekg (0, fstream.end);
   this->filesize = fstream.tellg();
   fstream.seekg (0, fstream.beg);
 
   // Calculate SHA1 hash of file
-	char * filebuf = new char[this->filesize];
-  char hash[20];
+	char* filebuf = new char[this->filesize];
+  unsigned char hash[20];
 
 	fstream.read(filebuf, this->filesize);
-  SHA1(filebuf, this->filesize, hash);
-  this->filehash(hash, 20);
+  SHA1((unsigned char*)filebuf, this->filesize, hash);
 
-	// Default chunk size is 256KiB
-	this->chunk_size = 256*1024;
+  for (int i=0; i<20; i++) {
+    if ((unsigned char)hash[i] > 0x7f) {
+//      hash[i] -= 0x7f;
+    }
+    this->filehash += (char)hash[i];
+  }
+
+	this->chunksize = DEFAULT_CHUNK_SIZE;
 
   // Calculate number of chunks and allocate memory for chunk hashes
   this->numchunks = filesize/chunksize;
   if (filesize%chunksize != 0) {    // If filesize does not divide evenly, we need another chunk at end
     this->numchunks++;
   }
-  this->chunkhashes = new char*[numchunks]; for (int i=0; i<this->numchunks; i++) {
-    this->chunkhashes[i] = new char[20]; 
-  }
+
+  this->chunkhashes = new string[numchunks]; 
 
   // Hash each chunk	
-  char* chunkbuf = new char[this->chunksize];
-	char chunkhash char[20];
+	unsigned char chunkhash[20];
 
-  for (int i=0; i<this->filesize; i+=this->chunksize) {
-    chunkbuf = &filebuf[i];
-		SHA1(chunkbuf, this->chunksize, chunkhash);
-    this->chunkhashes[i](chunkhash, 20);
-  }
-
-  // Initialize bitstring to all 0's
-  this->bitstring = new char[numchunks];
   for (int i=0; i<this->numchunks; i++) {
-    this->bitstring[i] = "0";
+    if (i+this->chunksize < filesize) {
+      SHA1((unsigned char*)&filebuf[i*this->chunksize], this->chunksize, chunkhash);
+    }
+    else {
+      SHA1((unsigned char*)&filebuf[i*this->chunksize], this->filesize-i, chunkhash);
+    }
+
+    for (int j=0; j<20; j++) {
+      this->chunkhashes[i] += (char)chunkhash[j];
+    }
   }
 
   // Write everything to metafile
   string line;
   int linelength;
 
-  metafile.open(filename + ".meta", ifstream::out);
+  tfilestream.open((filename + ".torrent").c_str(), ofstream::out);
     
   line = "filename: " + this->filename + "\n";
-  metafile.write(line.c_str(), line.length());
+  tfilestream.write(line.c_str(), line.length());
+  
+  line = "filesize: " + to_string(this->filesize) + "\n";
+  tfilestream.write(line.c_str(), line.length());
 
   line = "filehash: " + this->filehash + "\n";
-  metafile.write(line.c_str(), line.length());
+  tfilestream.write(line.c_str(), line.length());
 
-  line = "numchunks: " + this->numchunks + "\n";
-  metafile.write(line.c_str(), line.length());
+  line = "numchunks: " + to_string(this->numchunks) + "\n";
+  tfilestream.write(line.c_str(), line.length()); 
 
-  line = "chunksize: " + this->chunksize + "\n";
-  metafile.write(line.c_str(), line.length());
+  line = "chunksize: " + to_string(this->chunksize) + "\n";
+  tfilestream.write(line.c_str(), line.length());
 
   for (int i=0; i<numchunks; i++) {
-    line = "hash" + i + ":" + this->chunkhash[i] + "\n";
-    metafile.write(line.c_str(), line.length());
+    line = "hash" + to_string(i) + ": " + this->chunkhashes[i] + "\n";
+    tfilestream.write(line.c_str(), line.length());
   }
-  
-  string bstring(this->bitstring, numchunks);
-  line = "bitstring: " + bstring + "\n";
-  metafile.write(line.c_str(), line.length());
 
   // Free buffers and return
-  free(filebuf);
-  free(chunkbuf);
-  close(fstream);
+  delete filebuf;
+  fstream.close();
+  tfilestream.close();
+
 	return;
 }
 
-void setFromMetafile(string filename, ifstream mfilestream) {
-  
-}
-
- 
-/*
+void TorrentFileManager::setFromTorrentFile(string filename) {
   // Open the file for reading
+  string tfilename = filename + ".torrent";
   std::ifstream ifs;
 
-  ifs.open("filename", std::ifstream::in);
+  ifs.open(tfilename, std::ifstream::in);
   if (!ifs.is_open()) {
-    std::cout << "Couldn't open " + filename + "for reading\n";
+    std::cout << "Couldn't open " + tfilename + "for reading\n";
     return;
   }
 
   //  Read each variable in
   string line;
+  int n;
+  
+  // Get filename
+  getline(ifs, line);
+  n = line.find(":");
+  this->filename = line.substr(n+2, line.size());
 
-  this->filename = filename;
-  while (!ifs.eos()) {
-    std::getline(ifs, line);
-    
+  // Get filesize
+  getline(ifs, line);
+  n = line.find(":");
+  this->filesize = stoi(line.substr(n+2, line.size()));
+
+  // Get filehash
+  getline(ifs, line);
+  n = line.find(":");
+  this->filehash = line.substr(n+2, line.size());
+
+  // Get numchunks
+  getline(ifs, line);
+  n = line.find(":");
+  this->numchunks = stoi(line.substr(n+2, line.size()));
+
+  // Get chunksize
+  getline(ifs, line);
+  n = line.find(":");
+  this->chunksize = stoi(line.substr(n+2, line.size()));
+
+
+  // Get chunkhashes
+  this->chunkhashes = new string[this->numchunks];
+  for (int i=0; i<this->numchunks; i++) {
+    getline(ifs, line);
+    n = line.find(":");
+    this->chunkhashes[i] = line.substr(n+2, line.size());
   }
 
+  return; 
 }
 
-*/
+
+string TorrentFileManager::getFilename() {
+  return this->filename;
+}
+
+int TorrentFileManager::getFilesize() {
+  return this->filesize;
+}
+
+string TorrentFileManager::getFilehash() {
+  return this->filehash;
+}
+
+int TorrentFileManager::getNumChunks() {
+  return this->numchunks;
+}
+
+int TorrentFileManager::getChunkSize() {
+  return this->chunksize;
+}
+
+string TorrentFileManager::getChunkHash(int chunknum) {
+  if (chunknum > this->numchunks || chunknum < 0) {
+    cout << "Invalid chunk number passed into getChunkHash\n";
+    return "";
+  }
+  else
+    return this->chunkhashes[chunknum];
+}
+
+int main(int argc, char** argv) {
+  if (argc != 2) {
+    cout << "Usage: TorrentFileManager <filename>\n";
+    return 1;
+  }
+  string filename(argv[1]);
+  TorrentFileManager tfilem(filename); 
+  return 0;
+}

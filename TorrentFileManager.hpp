@@ -1,11 +1,10 @@
 #include <iostream>
 #include <fstream>
-#include <istream>
 #include <string>
 #include <cstring>
 #include <cstdlib>
 #include <sys/types.h>
-#include <sys/stat.h>
+#include <sys/stat.h> 
 #include <openssl/sha.h> 
 // A torrent file consists of key: value pairs of information
 // relevant to the torrent.  It contains:
@@ -15,8 +14,11 @@
 // The number of chunks for the file
 // The size of each chunk
 // The SHA1 hashes of each chunk
-// Here is an example metadata file
+// The torrent file is named <filename>.torrent
+// e.g. If leeching a file named examplefile.txt, the torrent
+// file will be named examplefile.txt.torrent
 
+// Here is an example metadata file
 // filename:foo
 // filesize:2048
 // filehash:cf23df2207d99a74fbe169e3eba035e633b65d94
