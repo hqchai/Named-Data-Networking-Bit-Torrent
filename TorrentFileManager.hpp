@@ -1,3 +1,6 @@
+#ifndef _TorrentFileManager_h_guard_
+#define _TorrentFileManager_h_guard_
+
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -54,3 +57,4 @@ class TorrentFileManager
     std::string* chunkhashes;
 };
 
+#endif
