@@ -3,28 +3,71 @@
 #include "ChunkManager.cpp"
 #include <map>
 #include <fstream>
+#include <iostream>
+#include <sys/stat.h>
+
+const string configure_file = "test.txt";
 
 using namespace std;
+
+inline bool exists_file (const string& name) {
+  struct stat buffer;
+  return (stat (name.c_str(), &buffer) == 0);
+}
 
 namespace ndn {
 
 class InterestListener {
   public:
-    void run(string file_name) {
-      ifstream infile(file_name);
+    void run() {
+      ifstream infile(configure_file);
       string line;
       while (getline(infile, line)) {
         string ndn_name, file_name;
         ndn_name = line.substr(0, line.find(" "));
-        file_name = line.substr(line.find(" "));
-        m_map[ndn_name] = file_name;
-        m_face.setInterestFilter(ndn_name,
+        file_name = line.substr(line.find(" ")+1);
+        if (exists_file(file_name)) {
+          m_map[ndn_name] = file_name;
+          m_face.setInterestFilter(ndn_name,
                                  bind(&InterestListener::onInterest, this, _1, _2),
                                  RegisterPrefixSuccessCallback(),
                                  bind(&InterestListener::onRegisterFailed, this, _1, _2));
-      
+        }
+        else
+         delete_entry(ndn_name, true);
       }
       m_face.processEvents();
+    }
+
+    void list() {
+      ifstream infile(configure_file);
+      string line;
+      while (getline(infile, line))
+        cout << line << endl;
+    }
+
+    void delete_entry(string delete_name, bool silence) {
+      ifstream names(configure_file);
+      ofstream temp("temp.txt");
+      int found_name = 0;
+
+      string name, file_name;
+      while (names >> name >> file_name) {
+        if (delete_name != name) {
+          temp << name << ' ' << file_name << endl;
+        } else
+	  found_name = 1;
+      }
+      names.clear();
+      names.seekg(0, ios::beg);
+      names.close();
+      temp.close();
+      remove(configure_file.c_str());
+      rename("temp.txt", configure_file.c_str());
+      if (!silence && found_name == 0)
+        cout << "Couldn't find such name." << endl;
+      if (!silence && found_name == 1)
+        cout << "Name deleted." << endl;
     }
 
   private:
@@ -37,14 +80,14 @@ class InterestListener {
       string dataName = interestName.toUri();
       dataName = dataName.substr(0, dataName.find_last_of("/"));
       string file_name = m_map.find(dataName)->second;
+
       char* buffer;
       buffer = (char*) malloc (file_name.length()+1);
       strcpy(buffer, file_name.c_str());
       ChunkManager chunkManager(buffer);
       char temp[10];
       int bytes_read = chunkManager.readChunk(atoi(chunkNum.c_str()), temp);
-      //string content(temp, bytes_read);
-      string content = to_string(bytes_read);
+      string content(temp, bytes_read);
 
       shared_ptr<Data> data = make_shared<Data>();
       data->setName(interestName);
@@ -76,16 +119,27 @@ class InterestListener {
 int main(int argc, char** argv)
 {
   ndn::InterestListener listener;
-  if (argc < 2) {
+  /*if (argc < 2) {
      cout << "Usage: [argv=path_to_file_list]" << endl;
      cout << "Example: ./interestLitsener ./list.txt";
      return 0;
+  }*/
+  string list = "list";
+  string delete_entry = "delete";
+  if (argc == 2 && list.compare(argv[1]) == 0) {
+    listener.list();
   }
-  try {
-    listener.run(argv[1]);
+  else 
+  if (argc == 3 && delete_entry.compare(argv[1]) == 0) {
+    listener.delete_entry(argv[2], false);
   }
-  catch (const exception& e) {
-    cerr << "ERROR: " << e.what() << endl;
+  else {
+    try {
+      listener.run();
+    }
+    catch (const exception& e) {
+      cerr << "ERROR: " << e.what() << endl;
+    }
   }
   return 0;
 }
