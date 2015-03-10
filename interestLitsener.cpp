@@ -15,6 +15,18 @@ inline bool exists_file (const string& name) {
   return (stat (name.c_str(), &buffer) == 0);
 }
 
+inline string get_bitString (const string& name) {
+  if (!exists_file(name))
+    return "";
+  ifstream infile(name);
+  string line;
+  getline(infile, line);
+  getline(infile, line);
+  if (!getline(infile, line))
+    return "";
+  return line;
+}
+
 namespace ndn {
 
 class InterestListener {
@@ -25,10 +37,13 @@ class InterestListener {
       while (getline(infile, line)) {
         string ndn_name, file_name;
         ndn_name = line.substr(0, line.find(" "));
-        file_name = line.substr(line.find(" ")+1);
+        file_name = line.substr(line.find(" ") + 1);
         if (exists_file(file_name)) {
+          string bitString = get_bitString(file_name + ".meta");
           m_map[ndn_name] = file_name;
-          m_face.setInterestFilter(ndn_name,
+          for (size_t i = 0; i < bitString.length(); i++)
+            if (bitString[i] == '1')
+              m_face.setInterestFilter(ndn_name + "/" + to_string(i),
                                  bind(&InterestListener::onInterest, this, _1, _2),
                                  RegisterPrefixSuccessCallback(),
                                  bind(&InterestListener::onRegisterFailed, this, _1, _2));
@@ -68,6 +83,11 @@ class InterestListener {
         cout << "Couldn't find such name." << endl;
       if (!silence && found_name == 1)
         cout << "Name deleted." << endl;
+    }
+
+    void add_entry(string add_name, string file_name) {
+      ofstream outfile(configure_file, ios::app);
+      outfile << add_name << " " << file_name << endl;
     }
 
   private:
