@@ -2,9 +2,9 @@
 
 using namespace std;
 
-BitClient(const char* filename) {
-  chunk_manager = ChunkManager(name);
-  tfile_manager = TorrentFileManager(string(filename));
+BitClient(string filename) {
+  chunk_manager = ChunkManager(filename.c_str());
+  tfile_manager = TorrentFileManager(filename);
   m_filename = name; 
   return;
 }
@@ -72,14 +72,19 @@ void onTimeout(const Interest& interest) {
 
 
 int main (int argc, char** argv) {
-  ndn::BitClient client;
   if (argc < 3) {
-    cout << "Usage: [argv1=filename]" << endl;
-    cout << "Example: ./BitClient foo.txt" << endl;
+    cout << "Usage: [argv1=torrent filename]" << endl;
+    cout << "Example: ./BitClient foo.txt.torrent" << endl;
     return 0;
   }
+  string filename = argv[1];
+  // Remove '.torrent' at end
+  filename = filename.substr(0,filename.size()-8);
+
+  ndn::BitClient client(filename);
+
   try {
-    client.run(argv[1]);
+    client.run();
   }
   catch (const exception& e) {
     cerr << "ERROR: " << e.what() << endl;

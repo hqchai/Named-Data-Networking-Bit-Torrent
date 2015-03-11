@@ -53,6 +53,9 @@ void TorrentFileManager::createTorrentFile(string filename) {
 // Analyzes contents of file and writes to metafilestream  
 // Sets filename filesize filehash numchunks chunksize chunkhashses
 // Must reopen metafilestream
+  if (debug) {
+    cout << "Creating new torrent file\n";
+  }
   ofstream tfilestream;
   ifstream fstream;
   fstream.open(filename.c_str(), ifstream::in);
@@ -66,11 +69,8 @@ void TorrentFileManager::createTorrentFile(string filename) {
 
   // Calculate SHA1 hash of file
 	char* filebuf = new char[this->filesize];
-  unsigned char hash[20];
-  char hexhash[40];
 
 	fstream.read(filebuf, this->filesize);
-  SHA1((unsigned char*)filebuf, this->filesize, hash);
 
   this->filehash = hashToHex((unsigned char*)filebuf, this->filesize);
 
@@ -131,6 +131,10 @@ void TorrentFileManager::createTorrentFile(string filename) {
 }
 
 void TorrentFileManager::setFromTorrentFile(string filename) {
+  if (debug) {
+    cout << "Reading from existing torrent file\n";
+  }
+
   // Open the file for reading
   string tfilename = filename + ".torrent";
   std::ifstream ifs;
