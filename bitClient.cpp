@@ -1,4 +1,4 @@
-#include "BitClient.hpp"
+#include "bitClient.hpp"
 
 using namespace std;
 
