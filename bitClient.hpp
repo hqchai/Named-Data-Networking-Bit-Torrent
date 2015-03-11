@@ -13,8 +13,8 @@ using namespace ndn;
 
 class BitClient {
   public:
-    BitClient(const char* metafile);
-    void run(const string hash, const string name);
+    BitClient(string filename);
+    void run();
 
   private:
     void onData(const Interest& interest, const Data&data);

@@ -1,27 +1,31 @@
 #include "bitClient.hpp"
+#include "ChunkManager.cpp"
+#include "TorrentFileManager.cpp"
 
 using namespace std;
 using namespace ndn;
 
-BitClient::BitClient(string filename) {
-  this->chunk_manager = ChunkManager(filename.c_str());
-  this->tfile_manager = TorrentFileManager(filename);
-  this->m_filename = filename; 
+BitClient::BitClient(string filename) 
+  : chunk_manager(filename.c_str()), 
+    tfile_manager(filename)
+{
+  
+  this->filename = filename; 
   return;
-}
+} 
 
-void run() {
+void BitClient::run() {
   int num_chunks;
   int finished;
   string hash;
 
-  num_chunks = tfile_manager.getNumChunks();
+  hash = tfile_manager.getFilehash();
+  num_chunks = this->tfile_manager.getNumChunks();
   finished = 0;
  
   while (!finished) {
     finished = 1;
     for (int i=0; i<num_chunks; i++) {
-      hash = tfile_manager.getFilehash(i);
       // Check if we already have the file chunk      
       if (this->chunk_manager.chunkAvailable((long)i)) {
         continue;  
@@ -33,29 +37,29 @@ void run() {
         interest.setInterestLifetime(time::milliseconds(1000));
         interest.setMustBeFresh(true);
 
-        m_face.expressInterest(interest,
+        this->m_face.expressInterest(interest,
                                bind(&BitClient::onData, this, _1, _2),
                                bind(&BitClient::onTimeout, this, _1));
 
         cout << "Sending " << interest << endl;
       }
     }
-    m_face.processEvents();
+    this->m_face.processEvents();
   }
 }
 
-void onData(const Interest& interest, const Data&data) {
+void BitClient::onData(const Interest& interest, const Data&data) {
   cout << "<< Received " << interest << endl;
 
-  const Blob b = data.getContent();
+  const Block b = data.getContent();
 
   // Hash the data received and make sure it matches
   /* HASH CODE */
   
   // Write the data to disk
   Name interestName(interest.getName());
-  string chunkNum = interestName.getSubname(3, Name::npos).toUri();
-  chunk_manager.writeChunk(chunkNum, (char*)b.buf());
+  string chunkNum = interestName.getSubName(2, Name::npos).toUri();
+  this->chunk_manager.writeChunk((long)stoi(chunkNum), (char*)b.value());
 
   const uint8_t* content = b.value();
   for (size_t i = 0; i < b.value_size(); i++)
@@ -65,13 +69,13 @@ void onData(const Interest& interest, const Data&data) {
   return;
 }
 
-void onTimeout(const Interest& interest) {
+void BitClient::onTimeout(const Interest& interest) {
   cout << "Timeout " << interest << endl;
   return;
 }
 
 
-
+/*
 int main (int argc, char** argv) {
   if (argc < 3) {
     cout << "Usage: [argv1=torrent filename]" << endl;
@@ -82,7 +86,7 @@ int main (int argc, char** argv) {
   // Remove '.torrent' at end
   filename = filename.substr(0,filename.size()-8);
 
-  ndn::BitClient client(filename);
+  BitClient client(filename);
 
   try {
     client.run();
@@ -92,3 +96,4 @@ int main (int argc, char** argv) {
   }
   return 0;
 }
+*/
