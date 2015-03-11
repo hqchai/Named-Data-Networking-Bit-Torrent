@@ -85,8 +85,6 @@ void TorrentFileManager::createTorrentFile(string filename) {
   this->chunkhashes = new string[numchunks]; 
 
   // Hash each chunk	
-	unsigned char chunkhash[20];
-
   for (int i=0; i<this->numchunks; i++) {
     if (i+this->chunksize < filesize) {
       this->chunkhashes[i] = hashToHex((unsigned char*)&filebuf[i*this->chunksize], this->chunksize);
@@ -98,7 +96,6 @@ void TorrentFileManager::createTorrentFile(string filename) {
 
   // Write everything to metafile
   string line;
-  int linelength;
 
   tfilestream.open((filename + ".torrent").c_str(), ofstream::out);
     

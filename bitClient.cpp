@@ -1,11 +1,12 @@
 #include "bitClient.hpp"
 
 using namespace std;
+using namespace ndn;
 
-BitClient(string filename) {
-  chunk_manager = ChunkManager(filename.c_str());
-  tfile_manager = TorrentFileManager(filename);
-  m_filename = name; 
+BitClient::BitClient(string filename) {
+  this->chunk_manager = ChunkManager(filename.c_str());
+  this->tfile_manager = TorrentFileManager(filename);
+  this->m_filename = filename; 
   return;
 }
 
@@ -15,14 +16,14 @@ void run() {
   string hash;
 
   num_chunks = tfile_manager.getNumChunks();
-  hash = tfile_manager.getFilehash();
   finished = 0;
  
   while (!finished) {
     finished = 1;
     for (int i=0; i<num_chunks; i++) {
+      hash = tfile_manager.getFilehash(i);
       // Check if we already have the file chunk      
-      if (chunk_manager.chunkAvailable((long)i)) {
+      if (this->chunk_manager.chunkAvailable((long)i)) {
         continue;  
       } 
       else {

@@ -9,6 +9,8 @@
 #include "ChunkManager.hpp"
 #include "TorrentFileManager.hpp"
 
+using namespace ndn;
+
 class BitClient {
   public:
     BitClient(const char* metafile);
