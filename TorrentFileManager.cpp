@@ -218,11 +218,17 @@ string TorrentFileManager::hashToHex(unsigned char* contents, int size) {
 // Takes SHA1 hash of contents and returns hexadecimal representation of
 // the 20 byte SHA1 hash
   unsigned char hash[20];
-  string shash;
   char hexhash[40];
+  string shash;
+  int seed[20] = {86028121, 613651349, 715225739, 776531419, 797003437,
+                         15485863, 452930477, 334214467, 295075147, 49979687,
+                         413158523, 433024253, 961748941, 533000401, 573259433,
+                         1238465621, 938470121, 874766437, 75937369, 38504197};
+  int largeprime = 715225741;
+  int largeprime2 = 413158523;
 
+/* 
   SHA1((unsigned char*)contents, size, hash);
-
   for (int i=0; i<20; i++) {
     sprintf(hexhash+i*2, "%02x", hash[i]);
   }
@@ -230,6 +236,44 @@ string TorrentFileManager::hashToHex(unsigned char* contents, int size) {
   for (int i=0; i<40; i++) {
     shash += hexhash[i];
   }
+*/
+
+  
+  
+  // Fake hash 
+  int p=0;
+  for (int i=0; i<20; i++) {
+    hash[i] = seed[i];
+  }
+  for (int i=0; i<size; i++) {
+    hash[p] += (char)(((unsigned int)contents[i]));
+    p++;
+    p%=20;
+  } 
+  for (int i=0; i<size; i++) {
+    hash[p] += (char)(((unsigned int)contents[i]*largeprime));
+    p++;
+    p%=20;
+  } 
+  for (int i=0; i<size; i++) {
+    hash[p] += (char)(((unsigned int)contents[i]));
+    p++;
+    p%=20;
+  } 
+  for (int i=0; i<size; i++) {
+    hash[p] += (char)(((unsigned int)contents[i]*largeprime2));
+    p++;
+    p%=20;
+  } 
+  
+  for (int i=0; i<20; i++) {
+    sprintf(hexhash+i*2, "%02x", hash[i]);
+  }
+  
+  for (int i=0; i<40; i++) {
+    shash += hexhash[i];
+  }
+
   
   return shash;
 }

@@ -8,7 +8,6 @@
 #include <cstdlib>
 #include <sys/types.h>
 #include <sys/stat.h> 
-#include <openssl/sha.h> 
 // A torrent file consists of key: value pairs of information
 // relevant to the torrent.  It contains:
 // The file's name
