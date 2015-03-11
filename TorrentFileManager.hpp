@@ -1,7 +1,7 @@
 #ifndef _TorrentFileManager_h_guard_
 #define _TorrentFileManager_h_guard_
 
-#include <iostream>
+#include <iostream> 
 #include <fstream>
 #include <string>
 #include <cstring>
@@ -48,6 +48,7 @@ class TorrentFileManager
   private:
     void createTorrentFile(std::string filename);
     void setFromTorrentFile(std::string filename);
+    std::string hashToHex(unsigned char* contents, int size);
 
     std::string filename;
     int filesize;

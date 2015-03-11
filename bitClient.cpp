@@ -28,7 +28,7 @@ void run() {
       else {
         finished = 0;
 
-        Interest interest(Name("/tracker/BitTorrent/" + hash + "/" + to_string(i)));
+        Interest interest(Name("/BitTorrent/" + hash + "/" + to_string(i)));
         interest.setInterestLifetime(time::milliseconds(1000));
         interest.setMustBeFresh(true);
 

@@ -67,16 +67,12 @@ void TorrentFileManager::createTorrentFile(string filename) {
   // Calculate SHA1 hash of file
 	char* filebuf = new char[this->filesize];
   unsigned char hash[20];
+  char hexhash[40];
 
 	fstream.read(filebuf, this->filesize);
   SHA1((unsigned char*)filebuf, this->filesize, hash);
 
-  for (int i=0; i<20; i++) {
-    if ((unsigned char)hash[i] > 0x7f) {
-//      hash[i] -= 0x7f;
-    }
-    this->filehash += (char)hash[i];
-  }
+  this->filehash = hashToHex((unsigned char*)filebuf, this->filesize);
 
 	this->chunksize = DEFAULT_CHUNK_SIZE;
 
@@ -93,14 +89,10 @@ void TorrentFileManager::createTorrentFile(string filename) {
 
   for (int i=0; i<this->numchunks; i++) {
     if (i+this->chunksize < filesize) {
-      SHA1((unsigned char*)&filebuf[i*this->chunksize], this->chunksize, chunkhash);
+      this->chunkhashes[i] = hashToHex((unsigned char*)&filebuf[i*this->chunksize], this->chunksize);
     }
     else {
-      SHA1((unsigned char*)&filebuf[i*this->chunksize], this->filesize-i, chunkhash);
-    }
-
-    for (int j=0; j<20; j++) {
-      this->chunkhashes[i] += (char)chunkhash[j];
+      this->chunkhashes[i] = hashToHex((unsigned char*)&filebuf[i*this->filesize-i], this->chunksize);
     }
   }
 
@@ -219,6 +211,28 @@ string TorrentFileManager::getChunkHash(int chunknum) {
   else
     return this->chunkhashes[chunknum];
 }
+
+
+string TorrentFileManager::hashToHex(unsigned char* contents, int size) {
+// Takes SHA1 hash of contents and returns hexadecimal representation of
+// the 20 byte SHA1 hash
+  unsigned char hash[20];
+  string shash;
+  char hexhash[40];
+
+  SHA1((unsigned char*)contents, size, hash);
+
+  for (int i=0; i<20; i++) {
+    sprintf(hexhash+i*2, "%02x", hash[i]);
+  }
+  
+  for (int i=0; i<40; i++) {
+    shash += hexhash[i];
+  }
+  
+  return shash;
+}
+
 
 int main(int argc, char** argv) {
   if (argc != 2) {
