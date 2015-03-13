@@ -96,9 +96,9 @@ class InterestListener {
       remove(configure_file.c_str());
       rename(tempfile.c_str(), configure_file.c_str());
 
-      if (LISTEN_DEBUG && found_name == 0)
+      if (found_name == 0)
         cout << delete_name << " not found in list" << endl;
-      if (LISTEN_DEBUG && found_name == 1)
+      if (found_name == 1)
         cout << delete_name << " deleted from list" << endl;
     }
 
@@ -122,14 +122,13 @@ class InterestListener {
         ofstream outfile(configure_file, ios::app);
         outfile << filehash << " " << file_name << endl;
       }
-      if (LISTEN_DEBUG) {
-        cout << file_name << " added to list\n";
-      }
+      cout << file_name << " added to list\n";
     }
 
   private:
     void onInterest(const InterestFilter& filter, const Interest& interest) {
-      cout << "<< I: " << interest << endl;
+      if (LISTEN_DEBUG)
+        cout << "<< I: " << interest << endl;
 
       Name interestName(interest.getName());
       string chunkNum = interestName.getSubName(2, Name::npos).toUri();
@@ -137,12 +136,12 @@ class InterestListener {
       string dataName = interestName.getSubName(1, Name::npos).toUri();
       dataName = dataName.substr(0, dataName.find_last_of("/"));
       dataName = dataName.substr(1);
-      cout << "chunkNum: " << chunkNum << endl;
-      cout << "dataName: " << dataName<< endl;
       if (m_map.count(dataName) < 1) {
         cout << "Error: Key does not exist\n";
       }
       string file_name = m_map.find(dataName)->second;
+
+      cout << "filename: " << file_name << endl;
 
       ChunkManager chunkManager(file_name.c_str());
       char temp[16];

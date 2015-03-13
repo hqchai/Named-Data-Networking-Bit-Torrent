@@ -1,6 +1,6 @@
 #include "ChunkManager.hpp"
 
-static int CHUNKMANAGER_DEBUG = 1;
+static int CHUNKMANAGER_DEBUG = 0;
 
 bool checkFileExists(const std::string& filename);
 

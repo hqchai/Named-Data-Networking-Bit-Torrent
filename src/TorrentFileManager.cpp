@@ -3,7 +3,7 @@
 using namespace std;
 
 int DEFAULT_CHUNK_SIZE = 16;//256*1024;
-int debug = 1;
+int TORRENT_DEBUG = 0;
 
 TorrentFileManager::TorrentFileManager(string filename) {
 // Checks if torrentfile for file already exists
@@ -34,7 +34,7 @@ TorrentFileManager::TorrentFileManager(string filename) {
   }
   tfilestream.close();
 
-  if (debug) {
+  if (TORRENT_DEBUG) {
     cout << "filename = " << this->getFilename() << endl;
     cout << "filesize = " << to_string(this->getFilesize()) << endl;
     cout << "filehash = " << this->getFilehash() << endl;
@@ -51,7 +51,7 @@ void TorrentFileManager::createTorrentFile(string filename) {
 // Analyzes contents of file and writes to metafilestream  
 // Sets filename filesize filehash numchunks chunksize chunkhashses
 // Must reopen metafilestream
-  if (debug) {
+  if (TORRENT_DEBUG) {
     cout << "Creating new torrent file\n";
   }
   ofstream tfilestream;
@@ -126,7 +126,7 @@ void TorrentFileManager::createTorrentFile(string filename) {
 }
 
 void TorrentFileManager::setFromTorrentFile(string filename) {
-  if (debug) {
+  if (TORRENT_DEBUG) {
     cout << "Reading from existing torrent file\n";
   }
 

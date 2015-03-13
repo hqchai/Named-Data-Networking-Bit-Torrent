@@ -5,7 +5,7 @@
 using namespace std;
 using namespace ndn;
 
-static int CLIENT_DEBUG = 0;
+static int CLIENT_DEBUG = 1;
 
 BitClient::BitClient(string filename) 
   : tfile_manager(filename),
@@ -63,6 +63,8 @@ void BitClient::onData(const Interest& interest, const Data&data) {
   // Write the data to disk
   Name interestName(interest.getName());
   string chunkNum = interestName.getSubName(2, Name::npos).toUri();
+  chunkNum = chunkNum.substr(1); 
+  cout << "chunkNum: " << chunkNum << endl;
   this->chunk_manager.writeChunk((long)stoi(chunkNum), (char*)b.value());
 
   const uint8_t* content = b.value();
