@@ -2,7 +2,8 @@
 #include "security/key-chain.hpp"
 #include "ChunkManager.cpp"
 #include <map>
-#include <fstream> #include <iostream>
+#include <fstream> 
+#include <iostream>
 #include <sys/stat.h>
 #include "TorrentFileManager.cpp" 
 const string configure_file = "listenerfiles.list";
@@ -37,10 +38,13 @@ class InterestListener {
           m_map[ndn_name] = file_name;
           for (size_t i = 0; i < bitString.length(); i++) {
             if (bitString[i] == '1') {
-              m_face.setInterestFilter(ndn_name + "/" + to_string(i),
+              m_face.setInterestFilter("BitTorrent/" + ndn_name + "/" + to_string(i),
                                  bind(&InterestListener::onInterest, this, _1, _2),
                                  RegisterPrefixSuccessCallback(),
                                  bind(&InterestListener::onRegisterFailed, this, _1, _2));
+              if (LISTEN_DEBUG) {
+                cout << "Setting interest filter: BitTorrent/" << ndn_name + "/" + to_string(i) << endl;
+              }
             }
           }
         }
@@ -128,19 +132,28 @@ class InterestListener {
       cout << "<< I: " << interest << endl;
 
       Name interestName(interest.getName());
-      string chunkNum = interestName.getSubName(3, Name::npos).toUri();
+      string chunkNum = interestName.getSubName(2, Name::npos).toUri();
       chunkNum = chunkNum.substr(1, chunkNum.length()-1);
-      string dataName = interestName.toUri();
+      string dataName = interestName.getSubName(1, Name::npos).toUri();
       dataName = dataName.substr(0, dataName.find_last_of("/"));
+      dataName = dataName.substr(1);
+      cout << "chunkNum: " << chunkNum << endl;
+      cout << "dataName: " << dataName<< endl;
+      if (m_map.count(dataName) < 1) {
+        cout << "Error: Key does not exist\n";
+      }
       string file_name = m_map.find(dataName)->second;
 
-      char* buffer;
-      buffer = (char*) malloc (file_name.length()+1);
-      strcpy(buffer, file_name.c_str());
-      ChunkManager chunkManager(buffer);
-      char temp[10];
-      int bytes_read = chunkManager.readChunk(atoi(chunkNum.c_str()), temp);
+      ChunkManager chunkManager(file_name.c_str());
+      char temp[16];
+      int bytes_read = chunkManager.readChunk(stoi(chunkNum), temp);
       string content(temp, bytes_read);
+ 
+      cout << bytes_read << endl; 
+      for (int i=0; i<bytes_read; i++) {
+        cout << temp[i];
+      }
+      cout << endl;
 
       shared_ptr<Data> data = make_shared<Data>();
       data->setName(interestName);
@@ -151,7 +164,6 @@ class InterestListener {
       cout << ">> D: " << *data << endl;
       m_face.put(*data);
 
-      free(buffer);
     }
 
     void onRegisterFailed(const Name& prefix, const string&reason) {
