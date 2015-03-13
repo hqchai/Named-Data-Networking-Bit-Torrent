@@ -23,6 +23,7 @@ class ChunkManager {
         long getLastChunkSize(); //Size of last chunk
         bool* getChunks(); //Return pointer to bitmap
         bool chunkAvailable(const long chunkNum); //Yes/No if chunk has been downloaded
+        string getBitstring();
         
     private:
         fstream m_fileStream;

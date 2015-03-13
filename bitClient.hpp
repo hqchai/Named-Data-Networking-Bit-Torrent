@@ -22,9 +22,8 @@ class BitClient {
 
     Face m_face;
     string filename;
-    ChunkManager chunk_manager;
     TorrentFileManager tfile_manager;
-    
+    ChunkManager chunk_manager;
 };
 
 #endif

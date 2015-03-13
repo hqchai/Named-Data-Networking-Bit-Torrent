@@ -16,16 +16,9 @@ inline bool exists_file (const string& name) {
   return (stat (name.c_str(), &buffer) == 0);
 }
 
-inline string get_bitString (const string& name) {
-  if (!exists_file(name))
-    return "";
-  ifstream infile(name);
-  string line;
-  getline(infile, line);
-  getline(infile, line);
-  if (!getline(infile, line))
-    return "";
-  return line;
+inline string get_bitString (const string& filename) {
+  ChunkManager cm(filename.c_str());
+  return cm.getBitstring();
 }
 
 namespace ndn {
