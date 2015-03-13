@@ -2,8 +2,7 @@
 #include "security/key-chain.hpp"
 #include "ChunkManager.cpp"
 #include <map>
-#include <fstream>
-#include <iostream>
+#include <fstream> #include <iostream>
 #include <sys/stat.h>
 #include "TorrentFileManager.cpp" 
 const string configure_file = "listenerfiles.list";
@@ -34,7 +33,7 @@ class InterestListener {
         ndn_name = line.substr(0, line.find(" "));
         file_name = line.substr(line.find(" ") + 1);
         if (exists_file(file_name)) {
-          string bitString = get_bitString(file_name + ".meta");
+          string bitString = get_bitString(file_name);
           m_map[ndn_name] = file_name;
           for (size_t i = 0; i < bitString.length(); i++) {
             if (bitString[i] == '1') {
@@ -92,10 +91,11 @@ class InterestListener {
       temp.close();
       remove(configure_file.c_str());
       rename(tempfile.c_str(), configure_file.c_str());
+
       if (LISTEN_DEBUG && found_name == 0)
-        cout << "Couldn't find such name." << endl;
+        cout << delete_name << " not found in list" << endl;
       if (LISTEN_DEBUG && found_name == 1)
-        cout << "Name deleted." << endl;
+        cout << delete_name << " deleted from list" << endl;
     }
 
     bool entry_exists(string filename) {
@@ -117,6 +117,9 @@ class InterestListener {
         string filehash = TorrentFileManager(file_name).getFilehash();
         ofstream outfile(configure_file, ios::app);
         outfile << filehash << " " << file_name << endl;
+      }
+      if (LISTEN_DEBUG) {
+        cout << file_name << " added to list\n";
       }
     }
 
@@ -152,7 +155,7 @@ class InterestListener {
     }
 
     void onRegisterFailed(const Name& prefix, const string&reason) {
-      cerr << "ERRPR: Failed to register prefix \""
+      cerr << "ERROR: Failed to register prefix \""
            << prefix << "\" in local hub's daemon {" << reason << ")"
            << endl;
       m_face.shutdown();
@@ -169,10 +172,11 @@ class InterestListener {
 void print_usage() {
    cout << "Usage: ./interestListener command [options]" << endl;
    cout << "Commands:\n";
-   cout << "\tlist\n";
-   cout << "\tdelete <filename>\n";
-   cout << "\tadd <filename>\n";
-   cout << "\trun\n";
+   cout << "\tlist\tlists all files server is listening for\n";
+   cout << "\tdelete <filename>\tdelete the file from listening list\n";
+   cout << "\tadd <filename>\tadd the file to listening list\n";
+   cout << "\tmake <filename>\tcreate a torrent file for filename\n";
+   cout << "\trun\trun the interest listener\n";
    return;
 }
 
@@ -187,6 +191,8 @@ int main(int argc, char** argv)
   string delete_entry = "delete";
   string add_entry = "add";
   string run = "run";
+  string make = "make";
+
   if (argc == 2 && list.compare(argv[1]) == 0) {
     listener.list();
   }
@@ -195,6 +201,9 @@ int main(int argc, char** argv)
   }
   else if (argc == 3 && add_entry.compare(argv[1]) == 0) {
     listener.add_entry(argv[2]);
+  }
+  else if (argc == 3 && make.compare(argv[1]) == 0) {
+    TorrentFileManager tfm(argv[2]);
   }
   else if (argc == 2 && run.compare(argv[1]) == 0) {
     try {

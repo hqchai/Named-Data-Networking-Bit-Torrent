@@ -3,7 +3,7 @@
 using namespace std;
 
 int DEFAULT_CHUNK_SIZE = 16;//256*1024;
-int debug = 0;
+int debug = 1;
 
 TorrentFileManager::TorrentFileManager(string filename) {
 // Checks if torrentfile for file already exists

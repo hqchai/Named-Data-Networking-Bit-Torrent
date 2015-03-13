@@ -5,6 +5,8 @@
 using namespace std;
 using namespace ndn;
 
+static int CLIENT_DEBUG = 0;
+
 BitClient::BitClient(string filename) 
   : tfile_manager(filename),
     chunk_manager(filename.c_str(), tfile_manager.getFilesize(), tfile_manager.getChunkSize())
@@ -28,6 +30,8 @@ void BitClient::run() {
     for (int i=0; i<num_chunks; i++) {
       // Check if we already have the file chunk      
       if (this->chunk_manager.chunkAvailable((long)i)) {
+        if (CLIENT_DEBUG) 
+          cout << "Already have chunk " << i << endl;
         continue;  
       } 
       else {
