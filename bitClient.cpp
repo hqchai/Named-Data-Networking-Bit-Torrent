@@ -6,8 +6,8 @@ using namespace std;
 using namespace ndn;
 
 BitClient::BitClient(string filename) 
-  : chunk_manager(filename.c_str()), 
-    tfile_manager(filename)
+  : tfile_manager(filename),
+    chunk_manager(filename.c_str(), tfile_manager.getFilesize(), tfile_manager.getChunkSize())
 {
   
   this->filename = filename; 
@@ -75,9 +75,9 @@ void BitClient::onTimeout(const Interest& interest) {
 }
 
 
-/*
+
 int main (int argc, char** argv) {
-  if (argc < 3) {
+  if (argc < 2) {
     cout << "Usage: [argv1=torrent filename]" << endl;
     cout << "Example: ./BitClient foo.txt.torrent" << endl;
     return 0;
@@ -96,4 +96,4 @@ int main (int argc, char** argv) {
   }
   return 0;
 }
-*/
+

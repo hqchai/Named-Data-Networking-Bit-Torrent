@@ -3,10 +3,10 @@
 using namespace std;
 
 int DEFAULT_CHUNK_SIZE = 16;//256*1024;
-int debug = 1;
+int debug = 0;
 
 TorrentFileManager::TorrentFileManager(string filename) {
-// Checks if metadata file for file already exists
+// Checks if torrentfile for file already exists
 // If it doesn't it initializes a new one and sets variables
 // Otherwise, it will read the existing metafile and set variables
 
@@ -25,9 +25,7 @@ TorrentFileManager::TorrentFileManager(string filename) {
       return;
     }
     else {
-      cout << "Entering\n";
       this->createTorrentFile(filename);
-      cout << "Leaving\n";
     }
   }
   else {
@@ -279,6 +277,7 @@ string TorrentFileManager::hashToHex(unsigned char* contents, int size) {
 }
 
 
+/*
 int main(int argc, char** argv) {
   if (argc != 2) {
     cout << "Usage: TorrentFileManager <filename>\n";
@@ -288,3 +287,4 @@ int main(int argc, char** argv) {
   TorrentFileManager tfilem(filename); 
   return 0;
 }
+*/

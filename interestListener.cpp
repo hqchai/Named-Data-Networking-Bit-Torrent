@@ -5,8 +5,9 @@
 #include <fstream>
 #include <iostream>
 #include <sys/stat.h>
-
-const string configure_file = "test.txt";
+#include "TorrentFileManager.cpp" 
+const string configure_file = "listenerfiles.list";
+static int LISTEN_DEBUG= 1;
 
 using namespace std;
 
@@ -36,58 +37,94 @@ class InterestListener {
       string line;
       while (getline(infile, line)) {
         string ndn_name, file_name;
+
         ndn_name = line.substr(0, line.find(" "));
         file_name = line.substr(line.find(" ") + 1);
         if (exists_file(file_name)) {
           string bitString = get_bitString(file_name + ".meta");
           m_map[ndn_name] = file_name;
-          for (size_t i = 0; i < bitString.length(); i++)
-            if (bitString[i] == '1')
+          for (size_t i = 0; i < bitString.length(); i++) {
+            if (bitString[i] == '1') {
               m_face.setInterestFilter(ndn_name + "/" + to_string(i),
                                  bind(&InterestListener::onInterest, this, _1, _2),
                                  RegisterPrefixSuccessCallback(),
                                  bind(&InterestListener::onRegisterFailed, this, _1, _2));
+            }
+          }
         }
-        else
-         delete_entry(ndn_name, true);
+        // If the file doesn't exist, delete it from the listener list
+        else {
+         delete_entry(file_name);
+        }
       }
       m_face.processEvents();
     }
 
     void list() {
+    // entry is of format <hash> <filename>
+    // example entry:
+    // e72b5e6dae3dd602ff305eb737598b3b3ef6486c foo.txt
       ifstream infile(configure_file);
       string line;
-      while (getline(infile, line))
-        cout << line << endl;
+  
+      if (!infile.is_open()) {
+        cout << configure_file << " doesn't exist\n";
+      }
+      else {
+        while (getline(infile, line))
+          cout << line << endl;
+      }
     }
 
-    void delete_entry(string delete_name, bool silence) {
+    void delete_entry(string delete_name) {
+    // Calculates hash of filename given in delete_name
+    // If the hash matches any in the listeners file, the entry is deleted
+
+      string filehash = TorrentFileManager(delete_name).getFilehash();
+      string tempfile = ".tmp.txt";
       ifstream names(configure_file);
-      ofstream temp("temp.txt");
+      ofstream temp(tempfile);
       int found_name = 0;
 
       string name, file_name;
       while (names >> name >> file_name) {
-        if (delete_name != name) {
+        if (filehash != name) {
           temp << name << ' ' << file_name << endl;
         } else
-	  found_name = 1;
+	        found_name = 1;
       }
       names.clear();
       names.seekg(0, ios::beg);
       names.close();
       temp.close();
       remove(configure_file.c_str());
-      rename("temp.txt", configure_file.c_str());
-      if (!silence && found_name == 0)
+      rename(tempfile.c_str(), configure_file.c_str());
+      if (LISTEN_DEBUG && found_name == 0)
         cout << "Couldn't find such name." << endl;
-      if (!silence && found_name == 1)
+      if (LISTEN_DEBUG && found_name == 1)
         cout << "Name deleted." << endl;
     }
 
-    void add_entry(string add_name, string file_name) {
-      ofstream outfile(configure_file, ios::app);
-      outfile << add_name << " " << file_name << endl;
+    bool entry_exists(string filename) {
+    // Calculates hash of the file given by filename
+    // If any entries matches the hash, returns true
+      string filehash = TorrentFileManager(filename).getFilehash();
+      ifstream names(configure_file);
+      string name, file_name;
+      while (names >> name >> file_name) {
+        if (name == filehash) 
+          return true;
+      }
+      return false;
+    }
+
+    void add_entry(string file_name) {
+    // Automatically calculates hash and adds entry
+      if (!entry_exists(file_name)) {
+        string filehash = TorrentFileManager(file_name).getFilehash();
+        ofstream outfile(configure_file, ios::app);
+        outfile << filehash << " " << file_name << endl;
+      }
     }
 
   private:
@@ -136,30 +173,47 @@ class InterestListener {
 
 }
 
+void print_usage() {
+   cout << "Usage: ./interestListener command [options]" << endl;
+   cout << "Commands:\n";
+   cout << "\tlist\n";
+   cout << "\tdelete <filename>\n";
+   cout << "\tadd <filename>\n";
+   cout << "\trun\n";
+   return;
+}
+
 int main(int argc, char** argv)
 {
   ndn::InterestListener listener;
-  /*if (argc < 2) {
-     cout << "Usage: [argv=path_to_file_list]" << endl;
-     cout << "Example: ./interestLitsener ./list.txt";
-     return 0;
-  }*/
+  if (argc < 2) {
+    print_usage();
+    return 0;
+  }
   string list = "list";
   string delete_entry = "delete";
+  string add_entry = "add";
+  string run = "run";
   if (argc == 2 && list.compare(argv[1]) == 0) {
     listener.list();
   }
-  else 
-  if (argc == 3 && delete_entry.compare(argv[1]) == 0) {
-    listener.delete_entry(argv[2], false);
+  else if (argc == 3 && delete_entry.compare(argv[1]) == 0) {
+    listener.delete_entry(argv[2]);
   }
-  else {
+  else if (argc == 3 && add_entry.compare(argv[1]) == 0) {
+    listener.add_entry(argv[2]);
+  }
+  else if (argc == 2 && run.compare(argv[1]) == 0) {
     try {
       listener.run();
     }
     catch (const exception& e) {
       cerr << "ERROR: " << e.what() << endl;
-    }
+    } 
   }
+  else {
+    print_usage();
+  }
+  
   return 0;
 }
