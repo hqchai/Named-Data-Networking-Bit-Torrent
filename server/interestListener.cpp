@@ -76,7 +76,7 @@ class InterestListener {
     // Calculates hash of filename given in delete_name
     // If the hash matches any in the listeners file, the entry is deleted
 
-      string filehash = TorrentFileManager(delete_name).getFilehash();
+      //string filehash = TorrentFileManager(delete_name).getFilehash();
       string tempfile = ".tmp.txt";
       ifstream names(configure_file);
       ofstream temp(tempfile);
@@ -84,7 +84,7 @@ class InterestListener {
 
       string name, file_name;
       while (names >> name >> file_name) {
-        if (filehash != name) {
+        if (delete_name != file_name) {
           temp << name << ' ' << file_name << endl;
         } else
 	        found_name = 1;
@@ -105,11 +105,11 @@ class InterestListener {
     bool entry_exists(string filename) {
     // Calculates hash of the file given by filename
     // If any entries matches the hash, returns true
-      string filehash = TorrentFileManager(filename).getFilehash();
+      //string filehash = TorrentFileManager(filename).getFilehash();
       ifstream names(configure_file);
       string name, file_name;
       while (names >> name >> file_name) {
-        if (name == filehash) 
+        if (file_name == filename) 
           return true;
       }
       return false;
