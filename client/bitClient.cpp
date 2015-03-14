@@ -2,17 +2,14 @@
 #include "ChunkManager.cpp"
 #include "TorrentFileManager.cpp"
 
-using namespace std;
-using namespace ndn;
-
-static int CLIENT_DEBUG = 1;
+static int CLIENT_DEBUG= 1;
 
 BitClient::BitClient(string filename) 
   : tfile_manager(filename),
     chunk_manager(filename.c_str(), tfile_manager.getFilesize(), tfile_manager.getChunkSize())
 {
   
-  this->filename = filename; 
+  this->filename = filename;
   return;
 } 
 
@@ -25,6 +22,8 @@ void BitClient::run() {
   num_chunks = this->tfile_manager.getNumChunks();
   finished = 0;
  
+  this->listener.add_entry(this->filename);
+  this->listener.run(false);
   while (!finished) {
     finished = 1;
     for (int i=0; i<num_chunks; i++) {
@@ -50,6 +49,8 @@ void BitClient::run() {
     }
     this->m_face.processEvents();
   }
+  this->listener.stop();
+  this->listener.run(true);
 }
 
 void BitClient::onData(const Interest& interest, const Data&data) {
@@ -72,6 +73,8 @@ void BitClient::onData(const Interest& interest, const Data&data) {
     cout << content[i];
   cout << endl;
 
+  this->listener.stop();
+  this->listener.run(false);
   return;
 }
 
