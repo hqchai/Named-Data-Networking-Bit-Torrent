@@ -141,18 +141,21 @@ class InterestListener {
       }
       string file_name = m_map.find(dataName)->second;
 
-      cout << "filename: " << file_name << endl;
+      TorrentFileManager tfm(file_name.c_str());
 
-      ChunkManager chunkManager(file_name.c_str());
-      char temp[16];
+      ChunkManager chunkManager(file_name.c_str(), tfm.getFilesize(), tfm.getChunkSize());
+      char* temp = new char[chunkManager.getChunkSize()];
       int bytes_read = chunkManager.readChunk(stoi(chunkNum), temp);
       string content(temp, bytes_read);
- 
-      cout << bytes_read << endl; 
-      for (int i=0; i<bytes_read; i++) {
-        cout << temp[i];
+
+      if (LISTEN_DEBUG) {
+        cout << "Bytes read: " << bytes_read << endl; 
+        cout << "Content in char array: ";
+        for (int i=0; i<bytes_read; i++) {
+          cout << temp[i];
+        }
+        cout << endl;
       }
-      cout << endl;
 
       shared_ptr<Data> data = make_shared<Data>();
       data->setName(interestName);
@@ -162,6 +165,8 @@ class InterestListener {
       m_keyChain.sign(*data);
       cout << ">> D: " << *data << endl;
       m_face.put(*data);
+
+      delete temp;
 
     }
 

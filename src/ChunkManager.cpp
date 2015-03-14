@@ -13,19 +13,18 @@ ChunkManager::ChunkManager(const char* filename, const int fileSize, const int c
     metaFilename += ".meta";
     
     bool fileExists = false;
-    m_fileStream.open(filename, ios::in|ios::out|ios::binary);
     if(checkFileExists(string(filename))) {
         //File exists
         fileExists = true;
     }
     else {
         //Create preallocated file
-        m_fileStream.open(filename, ios::in|ios::out|ios::trunc|ios::binary);
+        m_fileStream.open(filename, ios::in|ios::out|ios::trunc);
         m_fileStream.seekp(fileSize-1);
         m_fileStream.write("", 1);
         m_fileStream.close();
-        m_fileStream.open(filename, ios::in|ios::out|ios::binary);
     }
+    m_fileStream.open(filename, ios::in|ios::out);
     
     if (checkFileExists(metaFilename)) {
       m_metaFileStream.open(metaFilename.c_str(), ios::in|ios::out);
@@ -96,6 +95,7 @@ ChunkManager::ChunkManager(const char* filename) {
         m_fileStream.close();
         m_fileStream.open(filename, ios::in|ios::out|ios::binary);
     }
+    m_fileStream.open(filename, ios::in|ios::out|ios::binary);
     
     if (checkFileExists(metaFilename)) {
       m_metaFileStream.open(metaFilename.c_str(), ios::in|ios::out);
@@ -134,7 +134,6 @@ ChunkManager::ChunkManager(const char* filename) {
       }
       cout << endl;
     }
-    m_fileStream.open(filename, ios::in|ios::out|ios::binary);
 }
 
 ChunkManager::~ChunkManager() {
