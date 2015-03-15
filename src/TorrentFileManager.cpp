@@ -2,7 +2,7 @@
 
 using namespace std;
 
-int DEFAULT_CHUNK_SIZE = 16;//256*1024;
+int DEFAULT_CHUNK_SIZE = 1024*8;//256*1024;
 int TORRENT_DEBUG = 0;
 
 TorrentFileManager::TorrentFileManager(string filename) {

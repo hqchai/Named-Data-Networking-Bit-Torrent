@@ -7,45 +7,61 @@ static int LISTEN_DEBUG = 1;
 
 const string configure_file = "listenerfiles.list";
 
+string getBitstring(string filename);
 void add_entry(string file_name);
 void delete_entry(string delete_name);
 
 BitClient::BitClient(string filename) 
-  : tfile_manager(filename),
-    chunk_manager(filename.c_str(), tfile_manager.getFilesize(), tfile_manager.getChunkSize())
 {
-  
+  tfile_manager = new TorrentFileManager(filename);
+  chunk_manager = new ChunkManager(filename.c_str(), tfile_manager->getFilesize(), tfile_manager->getChunkSize()); 
   this->filename = filename;
   return;
 } 
 
-void BitClient::run() {
-  int num_chunks;
-  string hash;
+BitClient::BitClient() 
+{
+  tfile_manager = NULL;
+  chunk_manager = NULL;
+  this->filename = "";
+  return;
+}
 
-  hash = tfile_manager.getFilehash();
-  num_chunks = this->tfile_manager.getNumChunks();
+BitClient::~BitClient() {
+  delete tfile_manager;
+  delete chunk_manager;
+}
 
-  add_entry(this->filename);
+
+void BitClient::run(bool seedonly) {
 
   // Setup leeching
-  for (int i=0; i<num_chunks; i++) {
-    // Check if we already have the file chunk      
-    if (this->chunk_manager.chunkAvailable((long)i)) {
-      if (CLIENT_DEBUG) 
-        cout << "Have chunk " << i << endl;
-      continue;  
-    } 
-    else {
-      Interest interest(Name("/BitTorrent/" + hash + "/" + to_string(i)));
-      interest.setInterestLifetime(time::milliseconds(1000));
-      interest.setMustBeFresh(true);
+  if (!seedonly) {
+    int num_chunks;
+    string hash;
 
-      m_face.expressInterest(interest,
-                             bind(&BitClient::onData, this, _1, _2),
-                             bind(&BitClient::onTimeout, this, _1));
+    hash = tfile_manager->getFilehash();
+    num_chunks = this->tfile_manager->getNumChunks();
+    add_entry(this->filename);
 
-      cout << "Sending " << interest << endl;
+    for (int i=0; i<num_chunks; i++) {
+      // Check if we already have the file chunk      
+      if (this->chunk_manager->chunkAvailable((long)i)) {
+        if (CLIENT_DEBUG) 
+          cout << "Have chunk " << i << endl;
+        continue;  
+      } 
+      else {
+        Interest interest(Name("/BitTorrent/" + hash + "/" + to_string(i)));
+        interest.setInterestLifetime(time::milliseconds(10000));
+        interest.setMustBeFresh(true);
+
+        m_face.expressInterest(interest,
+                               bind(&BitClient::onData, this, _1, _2),
+                               bind(&BitClient::onTimeout, this, _1));
+
+        cout << "Sending " << interest << endl;
+      }
     }
   }
 
@@ -58,7 +74,7 @@ void BitClient::run() {
     ndn_name = line.substr(0, line.find(" "));
     file_name = line.substr(line.find(" ") + 1);
     if (exists_file(file_name)) {
-      string bitString = this->chunk_manager.getBitstring();
+      string bitString = getBitstring(file_name);
       m_map[ndn_name] = file_name;
       for (size_t i = 0; i < bitString.length(); i++) {
         if (bitString[i] == '1') {
@@ -95,7 +111,7 @@ void BitClient::onData(const Interest& interest, const Data&data) {
   Name interestName(interest.getName());
   string chunkNum = interestName.getSubName(2, Name::npos).toUri();
   chunkNum = chunkNum.substr(1); 
-  this->chunk_manager.writeChunk((long)stoi(chunkNum), (char*)b.value());
+  this->chunk_manager->writeChunk((long)stoi(chunkNum), (char*)b.value());
 
   const uint8_t* content = b.value();
   for (size_t i = 0; i < b.value_size(); i++)
@@ -128,7 +144,7 @@ void BitClient::onTimeout(const Interest& interest) {
   chunkNum = chunkNum.substr(1); 
 
   Interest reinterest(Name("/BitTorrent/" + hash + "/" + chunkNum));
-  reinterest.setInterestLifetime(time::milliseconds(1000));
+  reinterest.setInterestLifetime(time::milliseconds(10000));
   reinterest.setMustBeFresh(true);
 
   this->m_face.expressInterest(interest,
@@ -262,8 +278,8 @@ void add_entry(string file_name) {
     string filehash = TorrentFileManager(file_name).getFilehash();
     ofstream outfile(configure_file, ios::app);
     outfile << filehash << " " << file_name << endl;
+    cout << file_name << " added to list\n";
   }
-  cout << file_name << " added to list\n";
 }
 
 
@@ -274,7 +290,13 @@ void print_usage() {
    cout << "\tdelete <filename>\tdelete the file from listening list\n";
    cout << "\tadd <filename>\tadd the file to listening list\n";
    cout << "\tmake <filename>\tcreate a torrent file for filename\n";
+   cout << "\tseed\tstart seeding all available files in listening list\n";
    return;
+}
+
+string getBitstring(string filename) {
+  ChunkManager cm(filename.c_str());
+  return cm.getBitstring();
 }
 
 
@@ -290,6 +312,13 @@ int main(int argc, char** argv)
   string delete_entry_s = "delete";
   string add_entry_s = "add";
   string make_s = "make";
+  string seed_s = "seed";
+
+  bool seedonly = false;
+
+  if (argc == 2 && seed_s.compare(argv[1]) == 0) {
+    seedonly = true;
+  }
 
   if (argc == 2 && list_s.compare(argv[1]) == 0) {
     list_entries();
@@ -305,12 +334,17 @@ int main(int argc, char** argv)
   }
   else {
     try {
-      string filename = argv[1];
-      // Remove '.torrent' at end
-      filename = filename.substr(0,filename.size()-8);
-
-      BitClient client(filename);
-      client.run();
+      if (seedonly) {
+        BitClient client;
+        client.run(seedonly);
+      }
+      else {
+        string filename = argv[1];
+        // Remove '.torrent' at end
+        filename = filename.substr(0,filename.size()-8);
+        BitClient client(filename);
+        client.run(seedonly);
+      }
     }
     catch (const exception& e) {
       cerr << "ERROR: " << e.what() << endl;

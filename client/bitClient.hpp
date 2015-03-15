@@ -20,8 +20,10 @@ inline bool exists_file (const string& name) {
 
 class BitClient {
   public:
+    BitClient();
     BitClient(string filename);
-    void run();
+    ~BitClient();
+    void run(bool seedonly);
 
   private:
     void onData(const Interest& interest, const Data&data);
@@ -31,8 +33,8 @@ class BitClient {
 
     Face m_face;
     string filename;
-    TorrentFileManager tfile_manager;
-    ChunkManager chunk_manager;
+    TorrentFileManager* tfile_manager;
+    ChunkManager* chunk_manager;
     KeyChain m_keyChain;
     map<string, string> m_map;
 };
