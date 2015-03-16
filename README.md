@@ -15,6 +15,6 @@ Install ndn using the --with-examples configuration
 
 Copy the contents of src into ndn-cxx/src/ and client into ndn-cxx/examples/
 
-Run waf and the client will be in ndn-cxx/build/examples/client
+Run waf and the client program will be in ndn-cxx/build/examples/client
 
 

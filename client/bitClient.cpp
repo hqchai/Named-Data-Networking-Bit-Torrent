@@ -2,8 +2,8 @@
 #include "ChunkManager.cpp"
 #include "TorrentFileManager.cpp"
 
-static int CLIENT_DEBUG = 1;
-static int LISTEN_DEBUG = 1;
+static int CLIENT_DEBUG = 0;
+static int LISTEN_DEBUG = 0;
 
 const string configure_file = "listenerfiles.list";
 
@@ -47,9 +47,7 @@ void BitClient::run(bool seedonly) {
     for (int i=0; i<num_chunks; i++) {
       // Check if we already have the file chunk      
       if (this->chunk_manager->chunkAvailable((long)i)) {
-        if (CLIENT_DEBUG) 
-          cout << "Have chunk " << i << endl;
-        continue;  
+        cout << "Have chunk " << i << endl;
       } 
       else {
         Interest interest(Name("/BitTorrent/" + hash + "/" + to_string(i)));
@@ -82,9 +80,8 @@ void BitClient::run(bool seedonly) {
                              bind(&BitClient::onInterest, this, _1, _2),
                              RegisterPrefixSuccessCallback(),
                              bind(&BitClient::onRegisterFailed, this, _1, _2));
-          if (LISTEN_DEBUG) {
-            cout << "Setting interest filter: BitTorrent/" << ndn_name + "/" + to_string(i) << endl;
-          }
+          cout << "Setting interest filter: BitTorrent/" << ndn_name + "/" + to_string(i) << endl;
+          
         }
       }
     }
@@ -113,19 +110,19 @@ void BitClient::onData(const Interest& interest, const Data&data) {
   chunkNum = chunkNum.substr(1); 
   this->chunk_manager->writeChunk((long)stoi(chunkNum), (char*)b.value());
 
+/*
   const uint8_t* content = b.value();
   for (size_t i = 0; i < b.value_size(); i++)
     cout << content[i];
   cout << endl;
+*/
 
   // Send interest filter for newly downloaded chunk 
   m_face.setInterestFilter(interest.getName().toUri(),
                      bind(&BitClient::onInterest, this, _1, _2),
                      RegisterPrefixSuccessCallback(),
                      bind(&BitClient::onRegisterFailed, this, _1, _2));
-  if (LISTEN_DEBUG) {
-    cout << "Setting interest filter: " << interest.getName().toUri() << endl;
-  }
+  cout << "Setting interest filter: " << interest.getName().toUri() << endl;
 
   return;
 }
@@ -195,7 +192,6 @@ void BitClient::onInterest(const InterestFilter& filter, const Interest& interes
   data->setContent(reinterpret_cast<const uint8_t*>(content.c_str()), content.size());
 
   m_keyChain.sign(*data);
-  cout << ">> D: " << *data << endl;
   m_face.put(*data);
 
   delete temp;
