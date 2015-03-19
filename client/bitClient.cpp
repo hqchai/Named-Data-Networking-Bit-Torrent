@@ -156,8 +156,7 @@ void BitClient::onTimeout(const Interest& interest) {
 
 
 void BitClient::onInterest(const InterestFilter& filter, const Interest& interest) {
-  if (LISTEN_DEBUG)
-    cout << "<< I: " << interest << endl;
+  cout << "Received interest " << interest << endl;
 
   Name interestName(interest.getName());
   string chunkNum = interestName.getSubName(2, Name::npos).toUri();
